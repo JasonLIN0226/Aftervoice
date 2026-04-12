@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { TransformationField } from "@/components/transformation-field";
-import type { Transformation } from "@/lib/transform";
+import {
+  MAX_SENTENCE_LENGTH,
+  normalizeSentence,
+  type Transformation,
+} from "@/lib/transform";
 
 type ExperienceState = "idle" | "loading" | "playing" | "complete" | "error";
 
@@ -38,15 +42,18 @@ export function AfterDistortion() {
       timers.forEach((timer) => window.clearTimeout(timer));
       window.clearTimeout(completionTimer);
     };
-  }, [status, transformation]);
+  }, [status]);
 
   const trimmedSentence = sentence.trim();
-  const canSubmit = trimmedSentence.length > 0 && trimmedSentence.length <= 220 && status !== "loading";
+  const canSubmit =
+    trimmedSentence.length > 0 &&
+    trimmedSentence.length <= MAX_SENTENCE_LENGTH &&
+    status !== "loading";
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const trimmed = sentence.replace(/\s+/g, " ").trim();
+    const trimmed = normalizeSentence(sentence);
 
     if (!trimmed) {
       return;
@@ -134,7 +141,7 @@ export function AfterDistortion() {
                     id="sentence"
                     name="sentence"
                     type="text"
-                    maxLength={220}
+                    maxLength={MAX_SENTENCE_LENGTH}
                     value={sentence}
                     onChange={(event) => setSentence(event.target.value)}
                     placeholder="Type one sentence."
@@ -143,7 +150,7 @@ export function AfterDistortion() {
 
                   <div className="mt-6 flex items-center justify-between gap-4 border-t border-white/8 pt-4">
                     <p className="font-mono-art text-xs uppercase tracking-[0.35em] text-[color:var(--muted)]">
-                      {sentence.trim().length}/220
+                      {trimmedSentence.length}/{MAX_SENTENCE_LENGTH}
                     </p>
                     <button
                       type="submit"

@@ -6,6 +6,8 @@ export type Transformation = {
   final_residue: string;
 };
 
+export const MAX_SENTENCE_LENGTH = 220;
+
 const WORD_REGEX = /[A-Za-z0-9']+/g;
 
 type IndexedWord = {
@@ -18,7 +20,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function normalizeSentence(sentence: string) {
+export function normalizeSentence(sentence: string) {
   return sentence.replace(/\s+/g, " ").trim();
 }
 
@@ -57,7 +59,7 @@ function sentenceFragments(sentence: string) {
     sliceDirectPhrase(sentence, tokens, Math.max(mid - 1, 0), Math.min(3, words.length)),
     sliceDirectPhrase(sentence, tokens, Math.max(words.length - 3, 0), Math.min(3, words.length)),
     sliceDirectPhrase(sentence, tokens, 1, Math.min(2, words.length - 1)),
-  ]).slice(0, 4);
+  ]).slice(0, 3);
 }
 
 function sliceDirectPhrase(
@@ -102,25 +104,25 @@ export function createLocalTransformation(input: string): Transformation {
   const second = exact[1] ?? exact[0] ?? shortResidue(original);
   const third = exact[2] ?? exact[1] ?? exact[0] ?? shortResidue(original);
   const tailWord = words.at(-1) ?? shortResidue(original);
-  const firstWord = words[0] ?? shortResidue(original);
+  const residue = shortResidue(original);
 
   const recombined = uniqueNonEmpty([
-    `${third} / ${softLower(first)}`.trim(),
-    `${tailWord} / ${softLower(second)}`.trim(),
-    `${first} / ${softLower(tailWord)}`.trim(),
-  ]).slice(0, 3);
-
-  const variants = uniqueNonEmpty([
-    `not ${softLower(first)}`.trim(),
-    `${third}, almost ${softLower(firstWord)}`.trim(),
+    `${first} ${softLower(third)}`.trim(),
+    `${second}, ${softLower(third)}`.trim(),
+    `${first}, ${softLower(tailWord)}`.trim(),
   ]).slice(0, 2);
+
+  const variant = uniqueNonEmpty([
+    `not ${softLower(first)}`.trim(),
+    `${residue}, not ${softLower(tailWord)}`.trim(),
+  ]).slice(0, 1);
 
   return {
     original,
-    exact_fragments: exact.slice(0, clamp(exact.length, 2, 4)),
-    recombined_fragments: recombined.slice(0, clamp(recombined.length, 2, 3)),
-    slight_variants: variants.slice(0, clamp(variants.length, 1, 2)),
-    final_residue: shortResidue(original),
+    exact_fragments: exact.slice(0, clamp(exact.length, 2, 3)),
+    recombined_fragments: recombined.slice(0, clamp(recombined.length, 1, 2)),
+    slight_variants: variant.slice(0, 1),
+    final_residue: residue,
   };
 }
 
@@ -154,15 +156,15 @@ export function coerceTransformation(input: string, candidate: unknown): Transfo
   const source = candidate as Partial<Transformation>;
 
   const original = cleanString(source.original) || fallback.original;
-  const exact = cleanArray(source.exact_fragments).slice(0, 4);
-  const recombined = cleanArray(source.recombined_fragments).slice(0, 3);
-  const variants = cleanArray(source.slight_variants).slice(0, 2);
+  const exact = cleanArray(source.exact_fragments).slice(0, 3);
+  const recombined = cleanArray(source.recombined_fragments).slice(0, 2);
+  const variants = cleanArray(source.slight_variants).slice(0, 1);
   const residue = cleanString(source.final_residue);
 
   return {
     original,
     exact_fragments: exact.length >= 2 ? exact : fallback.exact_fragments,
-    recombined_fragments: recombined.length >= 2 ? recombined : fallback.recombined_fragments,
+    recombined_fragments: recombined.length >= 1 ? recombined : fallback.recombined_fragments,
     slight_variants: variants.length >= 1 ? variants : fallback.slight_variants,
     final_residue: residue || fallback.final_residue,
   };

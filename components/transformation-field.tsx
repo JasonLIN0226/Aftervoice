@@ -73,7 +73,7 @@ export function TransformationField({
               <FloatingPhrase
                 text={fragment}
                 delay={index * 0.45}
-                className="font-mono-art text-sm tracking-[0.28em] text-[color:var(--muted)] uppercase sm:text-base"
+                className="font-mono-art text-sm tracking-[0.16em] text-[color:var(--muted)] sm:text-base"
               />
             </div>
           ))}
