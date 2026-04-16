@@ -180,6 +180,35 @@ npm run dev
 
 Then open `http://localhost:3000` in your browser.
 
+## Test Prompts In Terminal (No Website Needed)
+
+You can also test prompts directly from Terminal using the same `.env` key.
+
+Run one prompt:
+
+```bash
+npm run prompt:test -- -p "Rewrite this sentence in 5 words"
+```
+
+Use files:
+
+```bash
+npm run prompt:test -- --system-file prompts/system.txt --prompt-file prompts/input.txt
+```
+
+Interactive loop (keep testing quickly):
+
+```bash
+npm run prompt:test -- -i
+```
+
+Useful options:
+
+- `--model deepseek-chat`
+- `--temperature 0.3`
+- `--max-tokens 512`
+- `--json-mode` (forces JSON object output mode)
+
 ## Troubleshooting
 
 ### If `npm install` does not work

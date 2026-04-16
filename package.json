@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "prompt:test": "tsx scripts/prompt-test.ts"
   },
   "dependencies": {
     "framer-motion": "^12.23.24",
@@ -20,6 +21,7 @@
     "@types/react-dom": "^19.0.2",
     "postcss": "^8.4.49",
     "tailwindcss": "^4.1.4",
+    "tsx": "^4.21.0",
     "typescript": "^5.6.3"
   }
 }
