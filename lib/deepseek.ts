@@ -5,6 +5,12 @@ import { coerceTransformation, createLocalTransformation, type Transformation } 
 
 const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
 
+export type TransformSource = "llm" | "local";
+export type TransformResult = {
+  source: TransformSource;
+  transformation: Transformation;
+};
+
 export class DeepSeekConfigError extends Error {
   constructor(message: string) {
     super(message);
@@ -14,7 +20,7 @@ export class DeepSeekConfigError extends Error {
 
 function buildPrompt(sentence: string) {
   return [
-    "Return valid json only.",
+    "Return valid JSON only.",
     "",
     "Transform the user's sentence as if it passes through a medium in four combined conditions:",
     "1. retention",
@@ -40,8 +46,11 @@ function buildPrompt(sentence: string) {
     "Do not sound like an assistant.",
     "Do not generate unrelated poetic language.",
     "Keep everything very short, sparse, and fragmentary.",
+    "Make sure every transformed output remains meaningful.",
+    'Do not produce broken word combinations like "hurt meant" or other fragments that read like accidental word soup.',
+    "Especially for the final residue, keep the wording natural and preserve the original word order when possible.",
     "",
-    "Use this exact json shape:",
+    "Use this exact JSON shape:",
     '{ "original": string, "exact_fragments": string[], "recombined_fragments": string[], "slight_variants": string[], "final_residue": string }',
     "Constraints:",
     "- original: unchanged input sentence",
@@ -53,17 +62,23 @@ function buildPrompt(sentence: string) {
     "- keep each fragment under 6 words when possible",
     "- avoid full paraphrase",
     "- avoid unrelated invention",
+    '- avoid outputs that are grammatically or semantically broken, such as "hurt meant"',
+    "- final_residue should usually be a natural short phrase that still appears in the original wording or in the original word order",
     "- if contradiction appears, it should emerge from omission, context loss, or recombination",
     "- select quotable, emotionally charged, or easily extractable parts when possible",
+    "",
     `Sentence: ${sentence}`,
   ].join("\n");
 }
 
-export async function transformSentence(sentence: string): Promise<Transformation> {
+export async function transformSentence(sentence: string): Promise<TransformResult> {
   const config = getDeepSeekRuntimeConfig();
 
   if (!config.useLlm) {
-    return createLocalTransformation(sentence);
+    return {
+      source: "local",
+      transformation: createLocalTransformation(sentence),
+    };
   }
 
   if (config.configError) {
@@ -116,9 +131,15 @@ export async function transformSentence(sentence: string): Promise<Transformatio
       throw new Error("DeepSeek returned empty content");
     }
 
-    return coerceTransformation(sentence, JSON.parse(content));
+    return {
+      source: "llm",
+      transformation: coerceTransformation(sentence, JSON.parse(content)),
+    };
   } catch (error) {
     console.warn("[After Distortion] Warning: DeepSeek request failed. Using local fallback.", error);
-    return createLocalTransformation(sentence);
+    return {
+      source: "local",
+      transformation: createLocalTransformation(sentence),
+    };
   }
 }

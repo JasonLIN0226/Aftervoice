@@ -18,8 +18,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const transformation = await transformSentence(sentence);
-    return Response.json(transformation);
+    const result = await transformSentence(sentence);
+    return Response.json(result);
   } catch (error) {
     if (error instanceof DeepSeekConfigError) {
       return Response.json({ error: error.message }, { status: 500 });

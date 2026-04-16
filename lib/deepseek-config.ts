@@ -76,14 +76,14 @@ export function logDeepSeekStartupStatus() {
   const config = getDeepSeekRuntimeConfig();
 
   if (config.configError) {
-    console.warn(`[After Distortion] Warning: ${config.configError}`);
+    console.warn(`[After Voice] Warning: ${config.configError}`);
     return;
   }
 
   if (config.useLlm) {
-    console.info("[After Distortion] DeepSeek mode is enabled.");
+    console.info("[After Voice] DeepSeek mode is enabled.");
     return;
   }
 
-  console.info("[After Distortion] Local transformation mode is enabled.");
+  console.info("[After Voice] Local transformation mode is enabled.");
 }

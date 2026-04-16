@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { BurningText } from "@/components/burning-text";
 
 type OriginalSentenceProps = {
   text: string;
@@ -21,21 +22,22 @@ export function OriginalSentence({ text, faded }: OriginalSentenceProps) {
       {words.map((word, index) => (
         <motion.span
           key={`${word}-${index}`}
-          initial={{ opacity: 0, filter: "blur(8px)" }}
-          animate={
-            faded
-              ? { opacity: 0, filter: "blur(10px)" }
-              : { opacity: 1, filter: "blur(0px)" }
-          }
+          initial={{ opacity: 0, y: 10 }}
+          animate={faded ? { opacity: [1, 0.72, 0], y: [0, -8, -20] } : { opacity: 1, y: 0 }}
           transition={{
-            duration: faded ? 1.2 : 1,
+            duration: faded ? 1.45 : 1,
             delay: faded ? index * 0.12 : index * 0.05,
             ease: "easeOut",
           }}
           className="inline-block pr-[0.35em]"
-          style={{ willChange: "opacity, filter" }}
         >
-          {word}
+          <BurningText
+            text={word}
+            tone="core"
+            baseDelay={index * 0.04}
+            fadeOut={faded}
+            className="text-burn-core"
+          />
         </motion.span>
       ))}
     </motion.div>

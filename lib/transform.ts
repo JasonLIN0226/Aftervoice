@@ -9,6 +9,59 @@ export type Transformation = {
 export const MAX_SENTENCE_LENGTH = 220;
 
 const WORD_REGEX = /[A-Za-z0-9']+/g;
+const WEAK_EDGE_WORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "as",
+  "at",
+  "because",
+  "but",
+  "by",
+  "for",
+  "from",
+  "if",
+  "in",
+  "into",
+  "of",
+  "on",
+  "or",
+  "so",
+  "the",
+  "to",
+  "with",
+  "without",
+]);
+const FRAGMENT_OPENERS = new Set([
+  "always",
+  "just",
+  "never",
+  "really",
+  "sincerely",
+  "still",
+  "too",
+  "truly",
+  "very",
+]);
+const BARE_VERB_ENDINGS = new Set([
+  "appreciate",
+  "care",
+  "hurt",
+  "know",
+  "meant",
+  "remember",
+  "share",
+  "speak",
+  "stay",
+  "think",
+  "wanted",
+]);
+const BANNED_FRAGMENTS = new Set([
+  "for your",
+  "hurt meant",
+  "never meant",
+  "you enough",
+]);
 
 type IndexedWord = {
   value: string;
@@ -95,6 +148,57 @@ function shortResidue(sentence: string) {
   return words.slice(mid, clamp(mid + 2, 1, words.length)).join(" ");
 }
 
+function normalizeWord(word: string) {
+  return word.toLowerCase().replace(/[^a-z0-9']/g, "");
+}
+
+function isPlausibleFragment(text: string) {
+  const normalized = normalizeSentence(text);
+
+  if (!normalized) {
+    return false;
+  }
+
+  if (BANNED_FRAGMENTS.has(normalized.toLowerCase())) {
+    return false;
+  }
+
+  const words = wordsFromSentence(normalized).map(normalizeWord).filter(Boolean);
+
+  if (!words.length) {
+    return false;
+  }
+
+  const first = words[0];
+  const last = words.at(-1) ?? "";
+
+  if (words.length === 1) {
+    return !WEAK_EDGE_WORDS.has(first);
+  }
+
+  if (WEAK_EDGE_WORDS.has(first) || WEAK_EDGE_WORDS.has(last)) {
+    return false;
+  }
+
+  if (words.length === 2 && FRAGMENT_OPENERS.has(first) && BARE_VERB_ENDINGS.has(last)) {
+    return false;
+  }
+
+  return true;
+}
+
+function filterPlausibleFragments(values: string[]) {
+  return uniqueNonEmpty(values.map(normalizeSentence)).filter(isPlausibleFragment);
+}
+
+function appearsInOriginalOrder(input: string, fragment: string) {
+  if (!fragment) {
+    return false;
+  }
+
+  return normalizeSentence(input).toLowerCase().includes(normalizeSentence(fragment).toLowerCase());
+}
+
 export function createLocalTransformation(input: string): Transformation {
   const original = normalizeSentence(input);
   const words = wordsFromSentence(original);
@@ -156,16 +260,18 @@ export function coerceTransformation(input: string, candidate: unknown): Transfo
   const source = candidate as Partial<Transformation>;
 
   const original = cleanString(source.original) || fallback.original;
-  const exact = cleanArray(source.exact_fragments).slice(0, 3);
-  const recombined = cleanArray(source.recombined_fragments).slice(0, 2);
-  const variants = cleanArray(source.slight_variants).slice(0, 1);
+  const exact = filterPlausibleFragments(cleanArray(source.exact_fragments)).slice(0, 3);
+  const recombined = filterPlausibleFragments(cleanArray(source.recombined_fragments)).slice(0, 2);
+  const variants = filterPlausibleFragments(cleanArray(source.slight_variants)).slice(0, 1);
   const residue = cleanString(source.final_residue);
+  const plausibleResidue =
+    isPlausibleFragment(residue) && appearsInOriginalOrder(input, residue) ? residue : "";
 
   return {
     original,
     exact_fragments: exact.length >= 2 ? exact : fallback.exact_fragments,
     recombined_fragments: recombined.length >= 1 ? recombined : fallback.recombined_fragments,
     slight_variants: variants.length >= 1 ? variants : fallback.slight_variants,
-    final_residue: residue || fallback.final_residue,
+    final_residue: plausibleResidue || fallback.final_residue,
   };
 }

@@ -15,8 +15,11 @@ const monoFont = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "After Distortion",
+  title: "After Voice",
   description: "A sparse digital artwork about what remains of a sentence after it enters a medium.",
+  other: {
+    google: "notranslate",
+  },
 };
 
 export default function RootLayout({
@@ -25,7 +28,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" translate="no" className="notranslate">
+      <head>
+        <meta name="google" content="notranslate" />
+      </head>
       <body className={`${displayFont.variable} ${monoFont.variable}`}>
         {children}
       </body>

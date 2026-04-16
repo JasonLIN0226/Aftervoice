@@ -1,4 +1,4 @@
-# After Distortion
+# After Voice
 
 Single-page Next.js artwork exploring what remains of a sentence after it enters a medium.
 
