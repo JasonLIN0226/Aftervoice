@@ -63,7 +63,7 @@ export function FloatingPhrase({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 18, filter: "blur(6px)" }}
+      initial={{ opacity: 0, scale: 0.99, filter: "blur(8px)" }}
       animate={{
         opacity: 1,
         x: drift.x,
@@ -72,9 +72,9 @@ export function FloatingPhrase({
         scale: drift.scale,
         filter: "blur(0px)",
       }}
-      exit={{ opacity: 0, y: -20, filter: "blur(10px)" }}
+      exit={{ opacity: 0, scale: 1.01, filter: "blur(10px)" }}
       transition={{
-        opacity: { duration: 1.6, delay, ease: "easeOut" },
+        opacity: { duration: 2, delay, ease: [0.22, 1, 0.36, 1] },
         x: {
           duration,
           delay,
@@ -103,7 +103,7 @@ export function FloatingPhrase({
           repeatType: "mirror",
           ease: "easeInOut",
         },
-        filter: { duration: 1.6, delay, ease: "easeOut" },
+        filter: { duration: 2, delay, ease: [0.22, 1, 0.36, 1] },
       }}
       className="notranslate relative"
       style={{ willChange: "transform, opacity, filter", ...style }}

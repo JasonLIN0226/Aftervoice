@@ -11,7 +11,7 @@ import {
   type Transformation,
 } from "@/lib/transform";
 
-type ExperienceState = "idle" | "loading" | "playing" | "complete" | "error";
+type ExperienceState = "idle" | "playing" | "complete" | "error";
 
 const STEP_TIMINGS = [2600, 5600, 9200, 13200];
 const ARCHIVE_STORAGE_KEY = "after-distortion-archive";
@@ -65,7 +65,6 @@ function getSpeechRecognitionConstructor() {
 
 export function AfterDistortion() {
   const [sentence, setSentence] = useState("");
-  const [submittedSentence, setSubmittedSentence] = useState("");
   const [transformation, setTransformation] = useState<Transformation | null>(null);
   const [transformSource, setTransformSource] = useState<TransformSource | null>(null);
   const [status, setStatus] = useState<ExperienceState>("idle");
@@ -74,6 +73,7 @@ export function AfterDistortion() {
   const [archive, setArchive] = useState<ArchiveEntry[]>([]);
   const [activeArchiveId, setActiveArchiveId] = useState<string | null>(null);
   const [echoSeed, setEchoSeed] = useState(0);
+  const [isResolving, setIsResolving] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [listeningEnded, setListeningEnded] = useState(false);
@@ -128,7 +128,7 @@ export function AfterDistortion() {
   }, []);
 
   useEffect(() => {
-    if (status !== "playing") {
+    if (status !== "playing" || !transformation) {
       return;
     }
 
@@ -148,7 +148,7 @@ export function AfterDistortion() {
       timers.forEach((timer) => window.clearTimeout(timer));
       window.clearTimeout(completionTimer);
     };
-  }, [status]);
+  }, [status, transformation]);
 
   useEffect(() => {
     if (!transformation || step < 4 || archivedThisCycle.current) {
@@ -168,10 +168,11 @@ export function AfterDistortion() {
   }, [step, transformation]);
 
   const trimmedSentence = sentence.trim();
+  const showLanding = status === "idle" || status === "error" || isResolving;
   const canSubmit =
     trimmedSentence.length > 0 &&
     trimmedSentence.length <= MAX_SENTENCE_LENGTH &&
-    status !== "loading" &&
+    !isResolving &&
     !isListening;
 
   function handleStartListening() {
@@ -269,10 +270,9 @@ export function AfterDistortion() {
     }
 
     setError("");
-    setSubmittedSentence(trimmed);
     setTransformation(null);
     setTransformSource(null);
-    setStatus("loading");
+    setIsResolving(true);
     setStep(0);
     setActiveArchiveId(null);
     setEchoSeed(Math.floor(Math.random() * 1_000_000));
@@ -298,8 +298,10 @@ export function AfterDistortion() {
       };
       setTransformation(payload.transformation);
       setTransformSource(payload.source);
+      setIsResolving(false);
       setStatus("playing");
     } catch (submissionError) {
+      setIsResolving(false);
       setError(
         submissionError instanceof Error ? submissionError.message : "The sentence did not hold.",
       );
@@ -310,12 +312,12 @@ export function AfterDistortion() {
   function handleReset() {
     recognitionRef.current?.stop();
     setSentence("");
-    setSubmittedSentence("");
     setTransformation(null);
     setTransformSource(null);
     setStatus("idle");
     setStep(0);
     setError("");
+    setIsResolving(false);
     setIsListening(false);
     setListeningEnded(false);
     setInterimSentence("");
@@ -354,21 +356,22 @@ export function AfterDistortion() {
         <section className="relative z-10 flex-1 py-10">
           <div className="relative mx-auto flex w-full max-w-[88rem] flex-col gap-8 xl:min-h-[72vh] xl:justify-center">
             <div className="xl:pr-[21rem]">
-            <AnimatePresence mode="wait">
-              {status === "idle" || status === "error" ? (
+            <AnimatePresence mode="sync">
+              {showLanding ? (
                 <motion.div
                   key="landing"
-                  initial={{ opacity: 0, y: 22 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -22 }}
-                  transition={{ duration: 1, ease: "easeOut" }}
+                  initial={{ opacity: 0, scale: 0.988, filter: "blur(10px)" }}
+                  animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, scale: 0.995, filter: "blur(10px)" }}
+                  transition={{ duration: 0.95, ease: [0.22, 1, 0.36, 1] }}
                   className="mx-auto w-full max-w-4xl xl:ml-0"
                 >
                   <form
                     onSubmit={handleSubmit}
+                    aria-busy={isResolving}
                     className="burn-panel rounded-[2rem] border border-white/8 p-6 shadow-[0_0_80px_rgba(0,0,0,0.35)] backdrop-blur-[2px] sm:p-8 xl:translate-x-6"
                   >
-                    <div className="voice-capture-shell relative overflow-hidden rounded-[1.65rem] border border-white/8 px-5 py-6 sm:px-7 sm:py-7">
+                    <div className="voice-capture-shell relative min-h-[27rem] overflow-hidden rounded-[1.65rem] border border-white/8 px-5 py-6 sm:min-h-[28rem] sm:px-7 sm:py-7">
                       <div className="pointer-events-none absolute inset-0">
                         <div className="voice-capture-vein absolute left-[8%] top-[18%] h-px w-[28%]" />
                         <div className="voice-capture-vein absolute right-[10%] top-[28%] h-px w-[18%]" />
@@ -432,18 +435,14 @@ export function AfterDistortion() {
 
                         <p className="font-mono-art text-[10px] uppercase tracking-[0.34em] text-[color:var(--muted)]/88">
                           {isListening
-                            ? "Speak one sentence into the room"
+                            ? "I'm listening. Say one sentence."
                             : listeningEnded
-                              ? "The room has taken a sentence"
-                              : "Begin with a spoken sentence"}
+                              ? "Recorded successfully. Release it or try again."
+                              : "Tap the circle and speak one sentence."}
                         </p>
 
-                        <p className="max-w-xl text-center text-xs leading-relaxed text-[color:var(--muted)]/82">
-                          Best if you read the sentence in English, clearly and at a steady pace.
-                        </p>
-
-                        <div className="voice-transcript-window min-h-[4.75rem] w-full max-w-2xl px-4 py-4">
-                          <p className="text-center text-lg leading-relaxed text-[color:var(--foreground)]/92 sm:text-2xl">
+                        <div className="voice-transcript-window h-[6.25rem] w-full max-w-2xl overflow-hidden px-4 py-4 sm:h-[7rem]">
+                          <p className="transcript-preview text-center text-lg leading-relaxed text-[color:var(--foreground)]/92 sm:text-2xl">
                             {interimSentence || trimmedSentence || "Your spoken sentence will settle here."}
                           </p>
                         </div>
@@ -485,9 +484,15 @@ export function AfterDistortion() {
                         <button
                           type="submit"
                           disabled={!canSubmit}
-                          className="rounded-full border border-[color:var(--flare)]/50 px-5 py-2 text-sm uppercase tracking-[0.24em] text-[color:var(--foreground)] transition hover:border-[color:var(--flare)] hover:bg-[color:var(--flare)]/12 disabled:cursor-not-allowed disabled:border-white/10 disabled:text-white/30"
+                          className="inline-flex items-center gap-2 rounded-full border border-[color:var(--flare)]/50 px-5 py-2 text-sm uppercase tracking-[0.24em] text-[color:var(--foreground)] transition hover:border-[color:var(--flare)] hover:bg-[color:var(--flare)]/12 disabled:cursor-not-allowed disabled:border-white/10 disabled:text-white/30"
                         >
                           Release
+                          {isResolving ? (
+                            <span
+                              aria-hidden="true"
+                              className="inline-block h-3.5 w-3.5 animate-spin rounded-full border border-current border-t-transparent"
+                            />
+                          ) : null}
                         </button>
                       </div>
                     </div>
@@ -506,36 +511,17 @@ export function AfterDistortion() {
               ) : (
                 <motion.div
                   key="field"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 1.1, ease: "easeOut" }}
+                  initial={{ opacity: 0, scale: 0.995, filter: "blur(12px)" }}
+                  animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, scale: 1.005, filter: "blur(10px)" }}
+                  transition={{ duration: 1.15, ease: [0.22, 1, 0.36, 1] }}
                   className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 xl:items-start"
                 >
-                  {status === "loading" ? (
-                    <div className="burn-panel relative flex min-h-[62vh] w-full items-center justify-center overflow-hidden rounded-[2rem] border border-white/8 px-6 py-16 xl:-rotate-[0.45deg]">
-                      <div className="field-scanlines pointer-events-none absolute inset-0" />
-                      <div className="field-noise pointer-events-none absolute inset-0" />
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{
-                          opacity: [0.2, 1, 0.45],
-                          filter: ["blur(0px)", "blur(0px)", "blur(5px)"],
-                          scale: [0.98, 1.02, 1],
-                        }}
-                        transition={{
-                          duration: 2.4,
-                          repeat: Number.POSITIVE_INFINITY,
-                          ease: "easeInOut",
-                        }}
-                        className="text-burn-loading max-w-3xl text-center text-2xl leading-relaxed sm:text-4xl"
-                      >
-                        {submittedSentence}
-                      </motion.p>
-                    </div>
-                  ) : transformation ? (
-                    <TransformationField transformation={transformation} step={step} echoSeed={echoSeed} />
-                  ) : null}
+                  <TransformationField
+                    transformation={transformation}
+                    step={step}
+                    echoSeed={echoSeed}
+                  />
 
                   {transformSource ? (
                     <p className="font-mono-art text-[10px] uppercase tracking-[0.34em] text-[color:var(--muted)]/88 xl:pl-8">

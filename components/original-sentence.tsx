@@ -16,18 +16,22 @@ export function OriginalSentence({ text, faded }: OriginalSentenceProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 1.2, ease: "easeOut" }}
+      transition={{ duration: 1.45, ease: [0.22, 1, 0.36, 1] }}
       className="mx-auto max-w-3xl text-center text-2xl leading-relaxed text-[color:var(--foreground)] sm:text-4xl"
     >
       {words.map((word, index) => (
         <motion.span
           key={`${word}-${index}`}
-          initial={{ opacity: 0, y: 10 }}
-          animate={faded ? { opacity: [1, 0.72, 0], y: [0, -8, -20] } : { opacity: 1, y: 0 }}
+          initial={{ opacity: 0, filter: "blur(6px)" }}
+          animate={
+            faded
+              ? { opacity: [1, 0.72, 0], filter: ["blur(0px)", "blur(1px)", "blur(8px)"] }
+              : { opacity: 1, filter: "blur(0px)" }
+          }
           transition={{
-            duration: faded ? 1.45 : 1,
-            delay: faded ? index * 0.12 : index * 0.05,
-            ease: "easeOut",
+            duration: faded ? 1.7 : 1.2,
+            delay: faded ? index * 0.1 : index * 0.045,
+            ease: [0.22, 1, 0.36, 1],
           }}
           className="inline-block pr-[0.35em]"
         >

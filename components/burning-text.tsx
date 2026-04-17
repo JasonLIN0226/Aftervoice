@@ -41,6 +41,7 @@ export function BurningText({
   const visibleCount = glyphs.filter((glyph) => glyph.trim()).length || 1;
   const ashCount = Math.min(7, Math.max(2, Math.floor(visibleCount / 3)));
   const ashSpacing = Math.max(1, Math.floor(visibleCount / ashCount));
+  const loopAmbientMotion = !fadeOut && (tone === "loading" || tone === "residue");
   let seenVisible = 0;
 
   return (
@@ -87,12 +88,12 @@ export function BurningText({
                 duration: fadeOut ? 1.35 : 3.8,
                 delay: baseDelay + visibleIndex * 0.03,
                 ease: "easeInOut",
-                ...(fadeOut
-                  ? {}
-                  : {
+                ...(loopAmbientMotion
+                  ? {
                       repeat: Number.POSITIVE_INFINITY,
                       repeatType: "mirror" as const,
-                    }),
+                    }
+                  : {}),
               }}
               className={`char-burn ${toneClass(tone)}`}
             >
@@ -115,12 +116,12 @@ export function BurningText({
                   duration: fadeOut ? 1.8 : 3.2,
                   delay: ashDelay,
                   ease: "easeInOut",
-                  ...(fadeOut
-                    ? {}
-                    : {
+                  ...(loopAmbientMotion
+                    ? {
                         repeat: Number.POSITIVE_INFINITY,
                         repeatDelay: 1.1,
-                      }),
+                      }
+                    : {}),
                 }}
               />
             ) : null}

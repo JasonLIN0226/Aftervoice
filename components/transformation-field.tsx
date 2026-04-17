@@ -7,7 +7,7 @@ import { createForeignEcho } from "@/lib/echo";
 import type { Transformation } from "@/lib/transform";
 
 type TransformationFieldProps = {
-  transformation: Transformation;
+  transformation: Transformation | null;
   step: number;
   echoSeed: number;
 };
@@ -214,11 +214,15 @@ export function TransformationField({
         </p>
       </div>
 
-      <AnimatePresence mode="wait">
-        {showOriginal ? (
+      <AnimatePresence mode="sync">
+        {transformation && showOriginal ? (
           <motion.div
             key={`original-${step}`}
             className="relative z-10 flex w-full items-center justify-center"
+            initial={{ opacity: 0, filter: "blur(8px)" }}
+            animate={{ opacity: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, filter: "blur(8px)" }}
+            transition={{ duration: 1.25, ease: [0.22, 1, 0.36, 1] }}
           >
             <OriginalSentence text={transformation.original} faded={step === 1} />
           </motion.div>
@@ -226,7 +230,8 @@ export function TransformationField({
       </AnimatePresence>
 
       <AnimatePresence>
-        {showExact &&
+        {transformation &&
+          showExact &&
           transformation.exact_fragments.map((fragment, index) => {
             const position = exactPositions[index] ?? exactPositions[0];
 
@@ -248,7 +253,8 @@ export function TransformationField({
       </AnimatePresence>
 
       <AnimatePresence>
-        {showRecombined &&
+        {transformation &&
+          showRecombined &&
           transformation.recombined_fragments.map((fragment, index) => {
             const position = recombinedPositions[index] ?? recombinedPositions[0];
             const echo = createForeignEcho(fragment, echoSeed + index + step);
@@ -274,7 +280,8 @@ export function TransformationField({
       </AnimatePresence>
 
       <AnimatePresence>
-        {showVariants &&
+        {transformation &&
+          showVariants &&
           transformation.slight_variants.map((fragment, index) => {
             const position = variantPositions[index] ?? variantPositions[0];
             const echo = createForeignEcho(fragment, echoSeed + index + step + 3);
@@ -300,13 +307,13 @@ export function TransformationField({
       </AnimatePresence>
 
       <AnimatePresence mode="wait">
-        {showResidue ? (
+        {transformation && showResidue ? (
           <motion.div
             key="residue"
-            initial={{ opacity: 0, scale: 0.96, filter: "blur(10px)" }}
-            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, scale: 1.04, filter: "blur(10px)" }}
-            transition={{ duration: 2.2, ease: "easeOut" }}
+            initial={{ opacity: 0, scale: 0.97, y: 10, filter: "blur(14px)" }}
+            animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, scale: 1.03, y: -10, filter: "blur(12px)" }}
+            transition={{ duration: 2.6, ease: [0.22, 1, 0.36, 1] }}
             className="relative z-50 px-4 text-center"
             style={{ willChange: "opacity, transform, filter" }}
           >

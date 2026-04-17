@@ -176,6 +176,13 @@ textarea {
   pointer-events: none;
 }
 
+.transcript-preview {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
 .voice-capture-vein {
   background: linear-gradient(90deg, transparent, rgba(255, 232, 213, 0.18), transparent);
   opacity: 0.55;
