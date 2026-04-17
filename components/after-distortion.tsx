@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArchiveWall, type ArchiveEntry } from "@/components/archive-wall";
+import type { ArchiveEntry } from "@/components/archive-wall";
+import { StarArchive } from "@/components/star-archive";
 import { TransformationField } from "@/components/transformation-field";
 import type { TransformSource } from "@/lib/deepseek";
 import {
@@ -68,6 +69,29 @@ function getSpeechRecognitionConstructor() {
   return recognition ?? null;
 }
 
+function createArchiveStarSeed(index: number) {
+  const orbitMap = [
+    { x: 18, y: 22 },
+    { x: 28, y: 16 },
+    { x: 72, y: 18 },
+    { x: 82, y: 24 },
+    { x: 20, y: 72 },
+    { x: 30, y: 80 },
+    { x: 70, y: 78 },
+    { x: 82, y: 70 },
+    { x: 12, y: 44 },
+    { x: 88, y: 42 },
+    { x: 18, y: 56 },
+    { x: 78, y: 58 },
+  ][index % 12];
+  return {
+    x: orbitMap.x,
+    y: orbitMap.y,
+    size: 0.94 + (index % 5) * 0.22,
+    twinkleDelay: (index % 7) * 0.45,
+  };
+}
+
 export function AfterDistortion() {
   const [sentence, setSentence] = useState("");
   const [transformation, setTransformation] = useState<Transformation | null>(null);
@@ -105,7 +129,10 @@ export function AfterDistortion() {
               typeof entry.id === "string" &&
               typeof entry.residue === "string" &&
               typeof entry.source === "string",
-          ),
+          ).map((entry, index) => ({
+            ...createArchiveStarSeed(index),
+            ...entry,
+          })),
         );
       }
     } catch {
@@ -166,6 +193,7 @@ export function AfterDistortion() {
       id: `${Date.now()}-${transformation.final_residue}`,
       residue: transformation.final_residue,
       source: transformation.original,
+      ...createArchiveStarSeed(archive.length),
     };
 
     setArchive((current) => [entry, ...current].slice(0, 12));
@@ -424,7 +452,7 @@ export function AfterDistortion() {
 
         <section className="relative z-10 flex-1 py-10">
           <div className="relative mx-auto flex w-full max-w-[88rem] flex-col gap-8 xl:min-h-[72vh] xl:justify-center">
-            <div className="xl:pr-[21rem]">
+            <div>
             <AnimatePresence mode="sync">
               {showLanding ? (
                 <motion.div
@@ -433,12 +461,12 @@ export function AfterDistortion() {
                   animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
                   exit={{ opacity: 0, scale: 0.995, filter: "blur(10px)" }}
                   transition={{ duration: 0.95, ease: [0.22, 1, 0.36, 1] }}
-                  className="mx-auto w-full max-w-4xl xl:ml-0"
+                  className="mx-auto w-full max-w-3xl"
                 >
                   <form
                     onSubmit={handleSubmit}
                     aria-busy={isResolving}
-                    className="burn-panel rounded-[2rem] border border-white/8 p-6 shadow-[0_0_80px_rgba(0,0,0,0.35)] backdrop-blur-[2px] sm:p-8 xl:translate-x-6"
+                    className="burn-panel rounded-[2rem] border border-white/8 p-6 shadow-[0_0_80px_rgba(0,0,0,0.35)] backdrop-blur-[2px] sm:p-8"
                   >
                     <div className="voice-capture-shell relative min-h-[27rem] overflow-hidden rounded-[1.65rem] border border-white/8 px-5 py-6 sm:min-h-[28rem] sm:px-7 sm:py-7">
                       <div className="pointer-events-none absolute inset-0">
@@ -584,7 +612,7 @@ export function AfterDistortion() {
                   animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
                   exit={{ opacity: 0, scale: 1.005, filter: "blur(10px)" }}
                   transition={{ duration: 1.15, ease: [0.22, 1, 0.36, 1] }}
-                  className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 xl:items-start"
+                  className="mx-auto flex w-full max-w-3xl flex-col items-center gap-8"
                 >
                   <TransformationField
                     transformation={transformation}
@@ -593,7 +621,7 @@ export function AfterDistortion() {
                   />
 
                   {transformSource ? (
-                    <p className="font-mono-art text-[10px] uppercase tracking-[0.34em] text-[color:var(--muted)]/88 xl:pl-8">
+                    <p className="font-mono-art text-[10px] uppercase tracking-[0.34em] text-[color:var(--muted)]/88">
                       Source: {transformSource === "llm" ? "LLM" : "Local fallback"}
                     </p>
                   ) : null}
@@ -605,7 +633,7 @@ export function AfterDistortion() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 1.2, ease: "easeOut" }}
                       onClick={handleReset}
-                      className="rounded-full border border-white/12 px-5 py-2 text-sm uppercase tracking-[0.26em] text-[color:var(--muted)] transition hover:border-white/28 hover:text-[color:var(--foreground)] xl:ml-8"
+                      className="rounded-full border border-white/12 px-5 py-2 text-sm uppercase tracking-[0.26em] text-[color:var(--muted)] transition hover:border-white/28 hover:text-[color:var(--foreground)]"
                     >
                       Begin again
                     </motion.button>
@@ -616,9 +644,12 @@ export function AfterDistortion() {
             </div>
 
             {archive.length > 0 ? (
-              <div className="w-full xl:pointer-events-auto xl:absolute xl:right-0 xl:top-[4rem] xl:w-[20rem] xl:-rotate-[1.8deg]">
-                <ArchiveWall entries={archive} activeId={activeArchiveId} onClear={handleClearArchive} />
-              </div>
+              <StarArchive
+                entries={archive}
+                activeId={activeArchiveId}
+                onSelect={setActiveArchiveId}
+                onClear={handleClearArchive}
+              />
             ) : null}
           </div>
         </section>

@@ -209,6 +209,82 @@ textarea {
   filter: drop-shadow(0 0 0.34rem rgba(183, 220, 255, 0.24));
 }
 
+.star-archive-layer {
+  overflow: hidden;
+}
+
+.star-archive-node {
+  width: 2.8rem;
+  height: 2.8rem;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.star-archive-star {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.1rem;
+  height: 1.1rem;
+  transform: translate(-50%, -50%);
+  clip-path: polygon(50% 0%, 61% 34%, 100% 50%, 61% 66%, 50% 100%, 39% 66%, 0% 50%, 39% 34%);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 251, 228, 0.98) 0%, rgba(218, 233, 255, 0.92) 28%, rgba(148, 193, 255, 0.46) 52%, rgba(98, 147, 255, 0.1) 76%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 252, 234, 0.94), rgba(167, 205, 255, 0.72));
+  box-shadow:
+    0 0 0.55rem rgba(255, 248, 215, 0.28),
+    0 0 1.4rem rgba(149, 194, 255, 0.24);
+  opacity: 0.82;
+  animation: archive-star-twinkle 4.8s ease-in-out infinite;
+  animation-delay: var(--star-delay, 0s);
+}
+
+.star-archive-star::before,
+.star-archive-star::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+.star-archive-star::before {
+  inset: -0.55rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(171, 209, 255, 0.16), transparent 62%);
+  opacity: 0.92;
+  filter: blur(0.2rem);
+}
+
+.star-archive-star::after {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 251, 233, 1) 0%, rgba(220, 235, 255, 0.82) 58%, transparent 88%);
+  box-shadow: 0 0 0.32rem rgba(255, 250, 224, 0.26);
+  opacity: 0.95;
+}
+
+.star-archive-star-active {
+  opacity: 1;
+  box-shadow:
+    0 0 0.8rem rgba(255, 249, 224, 0.4),
+    0 0 1.8rem rgba(168, 205, 255, 0.34);
+}
+
+.star-archive-card {
+  pointer-events: auto;
+}
+
+.star-archive-clear {
+  background: rgba(6, 10, 24, 0.18);
+  backdrop-filter: blur(6px);
+}
+
 .star-float {
   animation: star-float-drift var(--float-duration, 8s) ease-in-out infinite;
   animation-delay: var(--float-delay, 0s);
@@ -761,6 +837,24 @@ textarea {
     opacity: 0;
     stroke-dasharray: 0 100;
     stroke-dashoffset: -6;
+  }
+}
+
+@keyframes archive-star-twinkle {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+
+  45% {
+    opacity: 0.96;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+
+  70% {
+    opacity: 0.78;
+    transform: translate(-50%, -50%) scale(0.96);
   }
 }
 

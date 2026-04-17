@@ -6,6 +6,10 @@ export type ArchiveEntry = {
   id: string;
   residue: string;
   source: string;
+  x?: number;
+  y?: number;
+  size?: number;
+  twinkleDelay?: number;
 };
 
 type ArchiveWallProps = {
