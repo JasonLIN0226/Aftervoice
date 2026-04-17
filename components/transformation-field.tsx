@@ -54,6 +54,46 @@ const emberDots = [
   { left: "82%", top: "28%", size: 5, delay: 1.6, duration: 4.9, color: "var(--flare)" },
   { left: "76%", top: "78%", size: 7, delay: 0.7, duration: 6.6, color: "var(--aura)" },
 ];
+const fieldVeils = [
+  {
+    className: "left-[2%] top-[6%] h-[44%] w-[34%] sm:left-[6%] sm:top-[8%] sm:w-[28%]",
+    background:
+      "linear-gradient(145deg, rgba(214,162,124,0.08), rgba(214,162,124,0.01) 62%, transparent 100%)",
+    rotate: "-14deg",
+    duration: 16,
+  },
+  {
+    className: "right-[5%] top-[12%] h-[56%] w-[26%] sm:right-[8%] sm:top-[10%] sm:w-[22%]",
+    background:
+      "linear-gradient(180deg, rgba(126,151,143,0.14), rgba(126,151,143,0.02) 72%, transparent 100%)",
+    rotate: "11deg",
+    duration: 18,
+  },
+  {
+    className: "left-[28%] bottom-[-6%] h-[46%] w-[40%] sm:left-[32%] sm:w-[36%]",
+    background:
+      "linear-gradient(130deg, rgba(112,84,98,0.18), rgba(200,139,105,0.04) 54%, transparent 100%)",
+    rotate: "-9deg",
+    duration: 20,
+  },
+];
+const ghostFrames = [
+  {
+    className: "left-[8%] top-[18%] h-[26%] w-[18%] sm:left-[10%]",
+    rotate: "-6deg",
+    delay: 0.4,
+  },
+  {
+    className: "right-[14%] top-[20%] h-[22%] w-[22%]",
+    rotate: "7deg",
+    delay: 1.2,
+  },
+  {
+    className: "left-[16%] bottom-[12%] h-[20%] w-[28%]",
+    rotate: "3deg",
+    delay: 1.8,
+  },
+];
 
 export function TransformationField({
   transformation,
@@ -68,10 +108,56 @@ export function TransformationField({
   const activeStageMark = stageMarks[Math.min(step, stageMarks.length - 1)];
 
   return (
-    <div className="distortion-surface burn-panel relative flex min-h-[62vh] w-full items-center justify-center overflow-hidden rounded-[2rem] border border-white/8 px-6 py-16 shadow-[0_0_80px_rgba(0,0,0,0.35)]">
+    <div className="distortion-surface burn-panel relative flex min-h-[62vh] w-full items-center justify-center overflow-hidden rounded-[2rem] border border-white/8 px-6 py-16 shadow-[0_0_80px_rgba(0,0,0,0.35)] xl:-rotate-[0.55deg]">
       <div className="field-scanlines pointer-events-none absolute inset-0" />
       <div className="field-noise pointer-events-none absolute inset-0" />
       <div className="field-burn-mask pointer-events-none absolute inset-0" />
+      {fieldVeils.map((veil, index) => (
+        <motion.div
+          key={`veil-${index}`}
+          className={`pointer-events-none absolute ${veil.className}`}
+          style={{
+            background: veil.background,
+            rotate: veil.rotate,
+            border: "1px solid rgba(255,255,255,0.04)",
+            boxShadow: "0 0 48px rgba(0,0,0,0.18)",
+          }}
+          animate={{
+            x: [0, index % 2 === 0 ? 20 : -16, 4, 0],
+            y: [0, -12, 8, 0],
+            opacity: [0.16, 0.32, 0.24, 0.18],
+            scale: [1, 1.04, 0.98, 1],
+          }}
+          transition={{
+            duration: veil.duration,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+      {ghostFrames.map((frame, index) => (
+        <motion.div
+          key={`frame-${index}`}
+          className={`field-ghost-frame pointer-events-none absolute ${frame.className}`}
+          style={{ rotate: frame.rotate }}
+          animate={{
+            opacity: [0.08, 0.18, 0.1],
+            x: [0, index % 2 === 0 ? 12 : -10, 0],
+            y: [0, -7, 0],
+          }}
+          transition={{
+            duration: 11 + index * 2,
+            delay: frame.delay,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+      <motion.div
+        className="field-fracture pointer-events-none absolute left-[54%] top-[10%] h-[76%] w-px"
+        animate={{ opacity: [0.05, 0.16, 0.08], scaleY: [0.94, 1.02, 0.98] }}
+        transition={{ duration: 9.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+      />
 
       <motion.div
         className="pointer-events-none absolute inset-0"
@@ -121,16 +207,6 @@ export function TransformationField({
           }}
         />
       ))}
-      <motion.div
-        className="pointer-events-none absolute inset-x-[-20%] top-[22%] h-px bg-gradient-to-r from-transparent via-white/60 to-transparent"
-        animate={{ x: ["-18%", "18%", "-8%"], opacity: [0.08, 0.32, 0.12] }}
-        transition={{ duration: 7.5, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-      />
-      <motion.div
-        className="pointer-events-none absolute inset-x-[-15%] bottom-[24%] h-[1px] bg-gradient-to-r from-transparent via-[color:var(--accent)]/60 to-transparent"
-        animate={{ x: ["16%", "-12%", "10%"], opacity: [0.1, 0.3, 0.12] }}
-        transition={{ duration: 9.5, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-      />
 
       <div className="pointer-events-none absolute left-5 top-5 z-40 rounded-full border border-white/10 bg-black/18 px-4 py-2 backdrop-blur-md">
         <p className="font-mono-art text-[10px] uppercase tracking-[0.4em] text-[color:var(--muted)]">
@@ -188,8 +264,8 @@ export function TransformationField({
                   duration={10}
                   tone="recombined"
                   style={position.style}
-                  echoText={echo.text}
-                  echoLanguage={echo.language}
+                  echoText={echo?.text}
+                  echoLanguage={echo?.language}
                   className="text-lg leading-snug text-[color:var(--foreground)]/86 sm:text-2xl"
                 />
               </div>
@@ -214,8 +290,8 @@ export function TransformationField({
                   duration={12}
                   tone="variant"
                   style={position.style}
-                  echoText={echo.text}
-                  echoLanguage={echo.language}
+                  echoText={echo?.text}
+                  echoLanguage={echo?.language}
                   className="text-base italic leading-snug text-[color:var(--accent)] sm:text-xl"
                 />
               </div>

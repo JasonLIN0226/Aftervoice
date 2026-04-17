@@ -16,6 +16,53 @@ type ExperienceState = "idle" | "loading" | "playing" | "complete" | "error";
 const STEP_TIMINGS = [2600, 5600, 9200, 13200];
 const ARCHIVE_STORAGE_KEY = "after-distortion-archive";
 
+type SpeechRecognitionAlternativeLike = {
+  transcript: string;
+};
+
+type SpeechRecognitionResultLike = {
+  0: SpeechRecognitionAlternativeLike;
+  isFinal?: boolean;
+  length: number;
+};
+
+type SpeechRecognitionEventLike = Event & {
+  resultIndex: number;
+  results: ArrayLike<SpeechRecognitionResultLike>;
+};
+
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  maxAlternatives?: number;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+function getSpeechRecognitionConstructor() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const recognition = (window as Window & {
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+    SpeechRecognition?: SpeechRecognitionConstructor;
+  }).SpeechRecognition ??
+    (window as Window & {
+      webkitSpeechRecognition?: SpeechRecognitionConstructor;
+      SpeechRecognition?: SpeechRecognitionConstructor;
+    }).webkitSpeechRecognition;
+
+  return recognition ?? null;
+}
+
 export function AfterDistortion() {
   const [sentence, setSentence] = useState("");
   const [submittedSentence, setSubmittedSentence] = useState("");
@@ -27,8 +74,13 @@ export function AfterDistortion() {
   const [archive, setArchive] = useState<ArchiveEntry[]>([]);
   const [activeArchiveId, setActiveArchiveId] = useState<string | null>(null);
   const [echoSeed, setEchoSeed] = useState(0);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [listeningEnded, setListeningEnded] = useState(false);
+  const [interimSentence, setInterimSentence] = useState("");
   const archivedThisCycle = useRef(false);
   const archiveHydrated = useRef(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
     try {
@@ -65,6 +117,15 @@ export function AfterDistortion() {
 
     window.localStorage.setItem(ARCHIVE_STORAGE_KEY, JSON.stringify(archive));
   }, [archive]);
+
+  useEffect(() => {
+    const Recognition = getSpeechRecognitionConstructor();
+    setSpeechSupported(Boolean(Recognition));
+
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
 
   useEffect(() => {
     if (status !== "playing") {
@@ -110,7 +171,93 @@ export function AfterDistortion() {
   const canSubmit =
     trimmedSentence.length > 0 &&
     trimmedSentence.length <= MAX_SENTENCE_LENGTH &&
-    status !== "loading";
+    status !== "loading" &&
+    !isListening;
+
+  function handleStartListening() {
+    const Recognition = getSpeechRecognitionConstructor();
+
+    if (!Recognition) {
+      setSpeechSupported(false);
+      setError("This browser cannot listen yet. Type the sentence instead.");
+      return;
+    }
+
+    recognitionRef.current?.stop();
+
+    const recognition = new Recognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognition.maxAlternatives = 3;
+
+    recognition.onstart = () => {
+      setError("");
+      setIsListening(true);
+      setListeningEnded(false);
+      setInterimSentence("");
+    };
+
+    recognition.onresult = (event) => {
+      let finalTranscript = "";
+      let liveTranscript = "";
+
+      for (let index = 0; index < event.results.length; index += 1) {
+        const chunk = event.results[index][0]?.transcript ?? "";
+
+        if (event.results[index]?.isFinal) {
+          finalTranscript += `${chunk} `;
+        } else {
+          liveTranscript += `${chunk} `;
+        }
+      }
+
+      const combined = normalizeSentence(`${finalTranscript} ${liveTranscript}`);
+      const normalizedFinal = normalizeSentence(finalTranscript);
+
+      setInterimSentence(combined);
+      setSentence(combined);
+
+      if (normalizedFinal) {
+        setSentence(normalizedFinal);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      setIsListening(false);
+      setListeningEnded(false);
+
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        setError("Microphone access was blocked. Allow it, or type the sentence below.");
+        return;
+      }
+
+      if (event.error === "no-speech") {
+        setError("No voice was caught. Try speaking once more.");
+        return;
+      }
+
+      if (event.error === "language-not-supported") {
+        setError("English recognition is not supported in this browser. Type the sentence instead.");
+        return;
+      }
+
+      setError("The voice did not arrive cleanly. Try again, or type the sentence instead.");
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      setListeningEnded(true);
+      recognitionRef.current = null;
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }
+
+  function handleStopListening() {
+    recognitionRef.current?.stop();
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -161,6 +308,7 @@ export function AfterDistortion() {
   }
 
   function handleReset() {
+    recognitionRef.current?.stop();
     setSentence("");
     setSubmittedSentence("");
     setTransformation(null);
@@ -168,6 +316,9 @@ export function AfterDistortion() {
     setStatus("idle");
     setStep(0);
     setError("");
+    setIsListening(false);
+    setListeningEnded(false);
+    setInterimSentence("");
   }
 
   function handleClearArchive() {
@@ -195,13 +346,14 @@ export function AfterDistortion() {
           transition={{ duration: 1.2, ease: "easeOut" }}
           className="relative z-10 pt-6 text-center"
         >
-          <h1 className="text-5xl tracking-[0.08em] text-[color:var(--foreground)] sm:text-7xl">
+          <h1 className="title-halo text-5xl tracking-[0.08em] text-[color:var(--foreground)] sm:text-7xl">
             After Voice
           </h1>
         </motion.header>
 
-        <section className="relative z-10 grid flex-1 grid-cols-1 items-center gap-6 py-10 xl:grid-cols-[minmax(0,1fr)_20rem]">
-          <div>
+        <section className="relative z-10 flex-1 py-10">
+          <div className="relative mx-auto flex w-full max-w-[88rem] flex-col gap-8 xl:min-h-[72vh] xl:justify-center">
+            <div className="xl:pr-[21rem]">
             <AnimatePresence mode="wait">
               {status === "idle" || status === "error" ? (
                 <motion.div
@@ -210,12 +362,94 @@ export function AfterDistortion() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -22 }}
                   transition={{ duration: 1, ease: "easeOut" }}
-                  className="mx-auto w-full max-w-4xl"
+                  className="mx-auto w-full max-w-4xl xl:ml-0"
                 >
                   <form
                     onSubmit={handleSubmit}
-                    className="burn-panel rounded-[2rem] border border-white/8 p-6 shadow-[0_0_80px_rgba(0,0,0,0.35)] backdrop-blur-[2px] sm:p-8"
+                    className="burn-panel rounded-[2rem] border border-white/8 p-6 shadow-[0_0_80px_rgba(0,0,0,0.35)] backdrop-blur-[2px] sm:p-8 xl:translate-x-6"
                   >
+                    <div className="voice-capture-shell relative overflow-hidden rounded-[1.65rem] border border-white/8 px-5 py-6 sm:px-7 sm:py-7">
+                      <div className="pointer-events-none absolute inset-0">
+                        <div className="voice-capture-vein absolute left-[8%] top-[18%] h-px w-[28%]" />
+                        <div className="voice-capture-vein absolute right-[10%] top-[28%] h-px w-[18%]" />
+                        <div className="voice-capture-vein absolute bottom-[22%] left-[18%] h-px w-[22%]" />
+                      </div>
+
+                        <div className="relative flex flex-col items-center gap-5 text-center">
+                          <div className="voice-capture-orbit">
+                          <motion.button
+                            type="button"
+                            onClick={isListening ? handleStopListening : handleStartListening}
+                            whileTap={{ scale: 0.98 }}
+                            animate={
+                              isListening
+                                ? { scale: [1, 1.06, 0.98, 1], boxShadow: [
+                                    "0 0 0 rgba(201,119,89,0.12)",
+                                    "0 0 36px rgba(201,119,89,0.4)",
+                                    "0 0 18px rgba(127,154,146,0.3)",
+                                    "0 0 0 rgba(201,119,89,0.12)",
+                                  ] }
+                                : { scale: 1, boxShadow: "0 0 0 rgba(201,119,89,0.12)" }
+                            }
+                            transition={{
+                              duration: 2.8,
+                              repeat: isListening ? Number.POSITIVE_INFINITY : 0,
+                              ease: "easeInOut",
+                            }}
+                            className={`voice-capture-button ${isListening ? "voice-capture-button-live" : ""}`}
+                          >
+                            <span className="font-mono-art text-[11px] uppercase tracking-[0.34em]">
+                              {isListening ? "Receiving" : "Speak"}
+                            </span>
+                          </motion.button>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {Array.from({ length: 5 }).map((_, index) => (
+                            <motion.span
+                              key={`voice-bar-${index}`}
+                              className="voice-meter-bar"
+                              animate={
+                                isListening
+                                  ? {
+                                      height: [10, 28 + index * 3, 14, 24 - index, 10],
+                                      opacity: [0.4, 0.95, 0.55, 0.82, 0.4],
+                                    }
+                                  : {
+                                      height: [10, 14, 10],
+                                      opacity: [0.18, 0.3, 0.18],
+                                    }
+                              }
+                              transition={{
+                                duration: 1.4 + index * 0.12,
+                                repeat: Number.POSITIVE_INFINITY,
+                                ease: "easeInOut",
+                                delay: index * 0.08,
+                              }}
+                            />
+                          ))}
+                        </div>
+
+                        <p className="font-mono-art text-[10px] uppercase tracking-[0.34em] text-[color:var(--muted)]/88">
+                          {isListening
+                            ? "Speak one sentence into the room"
+                            : listeningEnded
+                              ? "The room has taken a sentence"
+                              : "Begin with a spoken sentence"}
+                        </p>
+
+                        <p className="max-w-xl text-center text-xs leading-relaxed text-[color:var(--muted)]/82">
+                          Best if you read the sentence in English, clearly and at a steady pace.
+                        </p>
+
+                        <div className="voice-transcript-window min-h-[4.75rem] w-full max-w-2xl px-4 py-4">
+                          <p className="text-center text-lg leading-relaxed text-[color:var(--foreground)]/92 sm:text-2xl">
+                            {interimSentence || trimmedSentence || "Your spoken sentence will settle here."}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
                     <label htmlFor="sentence" className="sr-only">
                       One sentence
                     </label>
@@ -230,21 +464,32 @@ export function AfterDistortion() {
                       spellCheck={false}
                       value={sentence}
                       onChange={(event) => setSentence(event.target.value)}
-                      placeholder="leave a sentence"
-                      className="burning-input h-24 w-full border-0 bg-transparent text-center text-2xl leading-relaxed text-[color:var(--foreground)] outline-none placeholder:text-white/22 sm:h-28 sm:text-4xl"
+                      placeholder="or leave a sentence by hand"
+                      className="burning-input mt-6 h-24 w-full border-0 bg-transparent text-center text-2xl leading-relaxed text-[color:var(--foreground)] outline-none placeholder:text-white/22 sm:h-28 sm:text-4xl"
                     />
 
                     <div className="mt-4 flex items-center justify-between gap-4 border-t border-white/8 pt-4">
                       <p className="font-mono-art text-xs uppercase tracking-[0.35em] text-[color:var(--muted)]">
                         {trimmedSentence.length}/{MAX_SENTENCE_LENGTH}
                       </p>
-                      <button
-                        type="submit"
-                        disabled={!canSubmit}
-                        className="rounded-full border border-[color:var(--flare)]/50 px-5 py-2 text-sm uppercase tracking-[0.24em] text-[color:var(--foreground)] transition hover:border-[color:var(--flare)] hover:bg-[color:var(--flare)]/12 disabled:cursor-not-allowed disabled:border-white/10 disabled:text-white/30"
-                      >
-                        Release
-                      </button>
+                      <div className="flex items-center gap-3">
+                        {speechSupported ? (
+                          <button
+                            type="button"
+                            onClick={isListening ? handleStopListening : handleStartListening}
+                            className="rounded-full border border-white/10 px-4 py-2 text-[11px] uppercase tracking-[0.26em] text-[color:var(--muted)] transition hover:border-white/24 hover:text-[color:var(--foreground)]"
+                          >
+                            {isListening ? "Stop voice" : "Voice again"}
+                          </button>
+                        ) : null}
+                        <button
+                          type="submit"
+                          disabled={!canSubmit}
+                          className="rounded-full border border-[color:var(--flare)]/50 px-5 py-2 text-sm uppercase tracking-[0.24em] text-[color:var(--foreground)] transition hover:border-[color:var(--flare)] hover:bg-[color:var(--flare)]/12 disabled:cursor-not-allowed disabled:border-white/10 disabled:text-white/30"
+                        >
+                          Release
+                        </button>
+                      </div>
                     </div>
 
                     {error ? (
@@ -265,10 +510,10 @@ export function AfterDistortion() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 1.1, ease: "easeOut" }}
-                  className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8"
+                  className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 xl:items-start"
                 >
                   {status === "loading" ? (
-                    <div className="burn-panel relative flex min-h-[62vh] w-full items-center justify-center overflow-hidden rounded-[2rem] border border-white/8 px-6 py-16">
+                    <div className="burn-panel relative flex min-h-[62vh] w-full items-center justify-center overflow-hidden rounded-[2rem] border border-white/8 px-6 py-16 xl:-rotate-[0.45deg]">
                       <div className="field-scanlines pointer-events-none absolute inset-0" />
                       <div className="field-noise pointer-events-none absolute inset-0" />
                       <motion.p
@@ -293,7 +538,7 @@ export function AfterDistortion() {
                   ) : null}
 
                   {transformSource ? (
-                    <p className="font-mono-art text-[11px] uppercase tracking-[0.3em] text-[color:var(--muted)]">
+                    <p className="font-mono-art text-[10px] uppercase tracking-[0.34em] text-[color:var(--muted)]/88 xl:pl-8">
                       Source: {transformSource === "llm" ? "LLM" : "Local fallback"}
                     </p>
                   ) : null}
@@ -305,7 +550,7 @@ export function AfterDistortion() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 1.2, ease: "easeOut" }}
                       onClick={handleReset}
-                      className="rounded-full border border-white/12 px-5 py-2 text-sm uppercase tracking-[0.26em] text-[color:var(--muted)] transition hover:border-white/28 hover:text-[color:var(--foreground)]"
+                      className="rounded-full border border-white/12 px-5 py-2 text-sm uppercase tracking-[0.26em] text-[color:var(--muted)] transition hover:border-white/28 hover:text-[color:var(--foreground)] xl:ml-8"
                     >
                       Begin again
                     </motion.button>
@@ -313,13 +558,14 @@ export function AfterDistortion() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+            </div>
 
-          {archive.length > 0 ? (
-            <ArchiveWall entries={archive} activeId={activeArchiveId} onClear={handleClearArchive} />
-          ) : (
-            <div className="hidden xl:block" />
-          )}
+            {archive.length > 0 ? (
+              <div className="w-full xl:pointer-events-auto xl:absolute xl:right-0 xl:top-[4rem] xl:w-[20rem] xl:-rotate-[1.8deg]">
+                <ArchiveWall entries={archive} activeId={activeArchiveId} onClear={handleClearArchive} />
+              </div>
+            ) : null}
+          </div>
         </section>
       </div>
     </main>
