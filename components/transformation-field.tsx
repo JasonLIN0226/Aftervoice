@@ -54,25 +54,30 @@ const emberDots = [
   { left: "82%", top: "28%", size: 5, delay: 1.6, duration: 4.9, color: "var(--flare)" },
   { left: "76%", top: "78%", size: 7, delay: 0.7, duration: 6.6, color: "var(--aura)" },
 ];
+const crossStars = [
+  { left: "18%", top: "16%", delay: 0.4, duration: 5.2, scale: 0.84, angle: -12 },
+  { left: "74%", top: "22%", delay: 1.3, duration: 6.4, scale: 1, angle: 18 },
+  { left: "58%", top: "74%", delay: 0.9, duration: 5.8, scale: 0.72, angle: 34 },
+];
 const fieldVeils = [
   {
     className: "left-[2%] top-[6%] h-[44%] w-[34%] sm:left-[6%] sm:top-[8%] sm:w-[28%]",
     background:
-      "linear-gradient(145deg, rgba(214,162,124,0.08), rgba(214,162,124,0.01) 62%, transparent 100%)",
+      "linear-gradient(145deg, rgba(158,201,255,0.1), rgba(158,201,255,0.01) 62%, transparent 100%)",
     rotate: "-14deg",
     duration: 16,
   },
   {
     className: "right-[5%] top-[12%] h-[56%] w-[26%] sm:right-[8%] sm:top-[10%] sm:w-[22%]",
     background:
-      "linear-gradient(180deg, rgba(126,151,143,0.14), rgba(126,151,143,0.02) 72%, transparent 100%)",
+      "linear-gradient(180deg, rgba(168,141,255,0.16), rgba(168,141,255,0.02) 72%, transparent 100%)",
     rotate: "11deg",
     duration: 18,
   },
   {
     className: "left-[28%] bottom-[-6%] h-[46%] w-[40%] sm:left-[32%] sm:w-[36%]",
     background:
-      "linear-gradient(130deg, rgba(112,84,98,0.18), rgba(200,139,105,0.04) 54%, transparent 100%)",
+      "linear-gradient(130deg, rgba(30,54,112,0.22), rgba(125,217,255,0.04) 54%, transparent 100%)",
     rotate: "-9deg",
     duration: 20,
   },
@@ -163,9 +168,9 @@ export function TransformationField({
         className="pointer-events-none absolute inset-0"
         animate={{
           background: [
-            "radial-gradient(circle at 44% 48%, rgba(255,109,57,0.12), transparent 40%), radial-gradient(circle at 62% 38%, rgba(125,129,255,0.12), transparent 34%)",
-            "radial-gradient(circle at 50% 54%, rgba(255,170,103,0.2), transparent 42%), radial-gradient(circle at 38% 32%, rgba(64,203,255,0.12), transparent 36%)",
-            "radial-gradient(circle at 58% 46%, rgba(255,95,57,0.14), transparent 44%), radial-gradient(circle at 44% 60%, rgba(163,117,255,0.11), transparent 34%)",
+            "radial-gradient(circle at 44% 48%, rgba(132,168,255,0.14), transparent 40%), radial-gradient(circle at 62% 38%, rgba(168,141,255,0.12), transparent 34%)",
+            "radial-gradient(circle at 50% 54%, rgba(244,240,198,0.16), transparent 42%), radial-gradient(circle at 38% 32%, rgba(125,217,255,0.14), transparent 36%)",
+            "radial-gradient(circle at 58% 46%, rgba(108,137,255,0.14), transparent 44%), radial-gradient(circle at 44% 60%, rgba(163,117,255,0.12), transparent 34%)",
           ],
         }}
         transition={{ duration: 18, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
@@ -174,8 +179,8 @@ export function TransformationField({
         className="pointer-events-none absolute inset-0 opacity-70 mix-blend-screen"
         animate={{
           background: [
-            "linear-gradient(110deg, transparent 34%, rgba(255,178,97,0.1) 44%, transparent 58%)",
-            "linear-gradient(110deg, transparent 28%, rgba(255,122,69,0.16) 48%, transparent 64%)",
+            "linear-gradient(110deg, transparent 34%, rgba(244,240,198,0.1) 44%, transparent 58%)",
+            "linear-gradient(110deg, transparent 28%, rgba(125,217,255,0.16) 48%, transparent 64%)",
             "linear-gradient(110deg, transparent 32%, rgba(137,126,255,0.14) 46%, transparent 62%)",
           ],
         }}
@@ -194,14 +199,37 @@ export function TransformationField({
             boxShadow: `0 0 16px ${dot.color}`,
           }}
           animate={{
-            opacity: [0, 0.92, 0.25, 0],
-            y: [8, -12, -26, -36],
-            x: [0, 4, -3, 2],
-            scale: [0.6, 1.1, 0.82, 0.3],
+            opacity: [0, 1, 0.32, 0],
+            y: [0, -4, 2, -1],
+            x: [0, 2, -2, 1],
+            scale: [0.45, 1.2, 0.74, 0.22],
           }}
           transition={{
             duration: dot.duration,
             delay: dot.delay,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+      {crossStars.map((star, index) => (
+        <motion.span
+          key={`cross-${star.left}-${star.top}-${index}`}
+          className="star-cross"
+          style={{
+            left: star.left,
+            top: star.top,
+            scale: star.scale,
+            rotate: `${star.angle}deg`,
+          }}
+          animate={{
+            opacity: [0.18, 0.95, 0.3, 0.82, 0.22],
+            scale: [star.scale * 0.88, star.scale * 1.14, star.scale * 0.92, star.scale],
+            rotate: [`${star.angle}deg`, `${star.angle + 8}deg`, `${star.angle}deg`, `${star.angle - 6}deg`, `${star.angle}deg`],
+          }}
+          transition={{
+            duration: star.duration,
+            delay: star.delay,
             repeat: Number.POSITIVE_INFINITY,
             ease: "easeInOut",
           }}

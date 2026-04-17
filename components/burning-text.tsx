@@ -70,18 +70,18 @@ export function BurningText({
               animate={
                 fadeOut
                   ? {
-                      opacity: [1, 0.82, 0],
-                      y: [0, -7, -20],
-                      rotate: [0, 2, -6],
-                      scale: [1, 1.04, 0.78],
-                      filter: ["blur(0px)", "blur(1px)", "blur(7px)"],
+                      opacity: [1, 0.86, 0],
+                      y: [0, -6, -16],
+                      rotate: [0, 1, -3],
+                      scale: [1, 1.04, 0.84],
+                      filter: ["blur(0px)", "blur(0.6px)", "blur(7px)"],
                     }
                   : {
-                      opacity: [0.55, 1, 0.88, 1],
-                      y: [2, -1.5, 0.8, 0],
-                      rotate: [0, 0.4, -0.6, 0],
-                      scale: [0.98, 1.02, 0.995, 1],
-                      filter: ["blur(0px)", "blur(0.2px)", "blur(0px)", "blur(0px)"],
+                      opacity: [0.72, 1, 0.9, 1],
+                      y: [1, -1.2, 0.4, 0],
+                      rotate: [0, 0.2, -0.2, 0],
+                      scale: [0.99, 1.03, 1, 1],
+                      filter: ["blur(0px)", "blur(0.1px)", "blur(0px)", "blur(0px)"],
                     }
               }
               transition={{
@@ -105,15 +105,15 @@ export function BurningText({
                 aria-hidden="true"
                 className="ash-particle"
                 style={{ left: ashLeft }}
-                initial={{ opacity: 0, y: -2, x: 0, scale: 0.3 }}
+                initial={{ opacity: 0, y: 0, x: 0, scale: 0.24 }}
                 animate={{
-                  opacity: fadeOut ? [0.18, 0.68, 0] : [0, 0.5, 0.14, 0],
-                  y: fadeOut ? [-4, 16, 40] : [-2, 12, 28, 42],
-                  x: [0, 4, -3, 2],
-                  scale: fadeOut ? [0.4, 1, 0.36] : [0.3, 0.9, 0.65, 0.24],
+                  opacity: fadeOut ? [0.22, 0.82, 0] : [0, 0.72, 0.2, 0],
+                  y: fadeOut ? [0, -10, -18] : [0, -6, 4, -2],
+                  x: fadeOut ? [0, 2, -1] : [0, 3, -2, 1],
+                  scale: fadeOut ? [0.3, 1.12, 0.2] : [0.24, 1, 0.52, 0.16],
                 }}
                 transition={{
-                  duration: fadeOut ? 1.8 : 3.2,
+                  duration: fadeOut ? 1.8 : 2.8,
                   delay: ashDelay,
                   ease: "easeInOut",
                   ...(loopAmbientMotion

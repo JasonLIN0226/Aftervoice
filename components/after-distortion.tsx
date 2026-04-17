@@ -15,6 +15,11 @@ type ExperienceState = "idle" | "playing" | "complete" | "error";
 
 const STEP_TIMINGS = [2600, 5600, 9200, 13200];
 const ARCHIVE_STORAGE_KEY = "after-distortion-archive";
+const SHOOTING_STARS = [
+  { path: "M 6 14 Q 14 8 25 20", delay: 2, duration: 30, x1: 6, y1: 14, x2: 25, y2: 20 },
+  { path: "M 66 8 Q 75 2 84 19", delay: 12, duration: 30, x1: 66, y1: 8, x2: 84, y2: 19 },
+  { path: "M 15 58 Q 28 49 42 66", delay: 22, duration: 30, x1: 15, y1: 58, x2: 42, y2: 66 },
+];
 
 type SpeechRecognitionAlternativeLike = {
   transcript: string;
@@ -339,6 +344,70 @@ export function AfterDistortion() {
         <div className="absolute right-[-8%] top-[18%] h-80 w-80 rounded-full bg-[color:var(--aura)]/18 blur-3xl" />
         <div className="absolute bottom-[8%] left-[12%] h-64 w-96 rounded-full bg-[color:var(--signal)]/14 blur-3xl" />
         <div className="absolute bottom-[-8%] right-[12%] h-80 w-80 rounded-full bg-[color:var(--ember)]/14 blur-3xl" />
+        <svg
+          className="shooting-sky absolute inset-0 h-full w-full"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <defs>
+            {SHOOTING_STARS.map((star, index) => (
+              <linearGradient
+                key={`shooting-gradient-${index}`}
+                id={`shooting-gradient-${index}`}
+                gradientUnits="userSpaceOnUse"
+                x1={star.x1}
+                y1={star.y1}
+                x2={star.x2}
+                y2={star.y2}
+              >
+                <stop offset="0%" stopColor="rgba(255,251,224,0)" />
+                <stop offset="35%" stopColor="rgba(156,206,255,0.18)" />
+                <stop offset="72%" stopColor="rgba(186,225,255,0.78)" />
+                <stop offset="100%" stopColor="rgba(255,252,232,0.98)" />
+              </linearGradient>
+            ))}
+            {SHOOTING_STARS.map((star, index) => (
+              <linearGradient
+                key={`shooting-glow-gradient-${index}`}
+                id={`shooting-glow-gradient-${index}`}
+                gradientUnits="userSpaceOnUse"
+                x1={star.x1}
+                y1={star.y1}
+                x2={star.x2}
+                y2={star.y2}
+              >
+                <stop offset="0%" stopColor="rgba(120,176,255,0)" />
+                <stop offset="48%" stopColor="rgba(120,176,255,0.12)" />
+                <stop offset="100%" stopColor="rgba(201,228,255,0.44)" />
+              </linearGradient>
+            ))}
+          </defs>
+          {SHOOTING_STARS.map((star, index) => (
+            <g key={`shooting-star-${index}`}>
+              <path
+                d={star.path}
+                pathLength={100}
+                className="shooting-star-glow"
+                stroke={`url(#shooting-glow-gradient-${index})`}
+                style={{
+                  ["--shoot-duration" as string]: `${star.duration}s`,
+                  ["--shoot-delay" as string]: `${star.delay}s`,
+                }}
+              />
+              <path
+                d={star.path}
+                pathLength={100}
+                className="shooting-star-path"
+                stroke={`url(#shooting-gradient-${index})`}
+                style={{
+                  ["--shoot-duration" as string]: `${star.duration}s`,
+                  ["--shoot-delay" as string]: `${star.delay}s`,
+                }}
+              />
+            </g>
+          ))}
+        </svg>
       </div>
 
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-7xl flex-col justify-between">

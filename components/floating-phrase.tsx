@@ -35,78 +35,44 @@ export function FloatingPhrase({
   const drift =
     tone === "variant"
       ? {
-          x: [0, 12, -8, 4, 0],
-          y: [0, -18, 10, -8, 0],
-          rotate: [0, -1.9, 2.2, -0.9, 0],
-          scale: [0.96, 1.06, 0.99, 1.02, 1],
+          durationScale: 1.06,
         }
       : tone === "recombined"
         ? {
-            x: [0, -8, 6, -3, 0],
-            y: [0, -14, 5, -7, 0],
-            rotate: [0, 1.4, -1.5, 0.6, 0],
-            scale: [0.98, 1.04, 1, 1.01, 1],
+            durationScale: 0.94,
           }
         : {
-            x: [0, 5, -4, 0],
-            y: [0, -10, 4, 0],
-            rotate: [0, -0.9, 0.9, 0],
-            scale: [0.99, 1.02, 1, 1],
+            durationScale: 0.82,
           };
 
   const ghostClass =
     tone === "variant"
-      ? "text-[rgba(255,180,133,0.46)]"
+      ? "text-[rgba(193,177,255,0.48)]"
       : tone === "recombined"
-        ? "text-[rgba(255,255,255,0.28)]"
-        : "text-[rgba(184,165,138,0.34)]";
+        ? "text-[rgba(227,239,255,0.3)]"
+        : "text-[rgba(171,191,255,0.34)]";
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.99, filter: "blur(8px)" }}
       animate={{
         opacity: 1,
-        x: drift.x,
-        y: drift.y,
-        rotate: drift.rotate,
-        scale: drift.scale,
+        scale: 1,
         filter: "blur(0px)",
       }}
       exit={{ opacity: 0, scale: 1.01, filter: "blur(10px)" }}
       transition={{
         opacity: { duration: 2, delay, ease: [0.22, 1, 0.36, 1] },
-        x: {
-          duration,
-          delay,
-          repeat: Number.POSITIVE_INFINITY,
-          repeatType: "mirror",
-          ease: "easeInOut",
-        },
-        y: {
-          duration,
-          delay,
-          repeat: Number.POSITIVE_INFINITY,
-          repeatType: "mirror",
-          ease: "easeInOut",
-        },
-        rotate: {
-          duration: duration * 1.1,
-          delay,
-          repeat: Number.POSITIVE_INFINITY,
-          repeatType: "mirror",
-          ease: "easeInOut",
-        },
-        scale: {
-          duration: duration * 0.9,
-          delay,
-          repeat: Number.POSITIVE_INFINITY,
-          repeatType: "mirror",
-          ease: "easeInOut",
-        },
+        scale: { duration: 2, delay, ease: [0.22, 1, 0.36, 1] },
         filter: { duration: 2, delay, ease: [0.22, 1, 0.36, 1] },
       }}
-      className="notranslate relative"
-      style={{ willChange: "transform, opacity, filter", ...style }}
+      className={`notranslate star-float star-float-${tone} relative`}
+      style={{
+        willChange: "transform, opacity, filter",
+        ["--float-duration" as string]: `${duration * drift.durationScale}s`,
+        ["--float-delay" as string]: `${delay}s`,
+        ...style,
+      }}
       translate="no"
     >
       {echoText ? (
@@ -140,7 +106,7 @@ export function FloatingPhrase({
           scale: [0.88, 1.08, 0.94],
         }}
         transition={{
-          duration: duration * 0.8,
+          duration: Math.max(6, duration * 0.75),
           delay,
           repeat: Number.POSITIVE_INFINITY,
           repeatType: "mirror",
@@ -149,10 +115,10 @@ export function FloatingPhrase({
         style={{
           background:
             tone === "variant"
-              ? "radial-gradient(circle, rgba(255,118,62,0.34), rgba(255,118,62,0))"
+              ? "radial-gradient(circle, rgba(168,141,255,0.32), rgba(168,141,255,0))"
               : tone === "recombined"
-                ? "radial-gradient(circle, rgba(145,135,255,0.28), rgba(145,135,255,0))"
-                : "radial-gradient(circle, rgba(255,204,118,0.24), rgba(255,204,118,0))",
+                ? "radial-gradient(circle, rgba(125,217,255,0.28), rgba(125,217,255,0))"
+                : "radial-gradient(circle, rgba(244,240,198,0.24), rgba(244,240,198,0))",
         }}
       />
       <p
